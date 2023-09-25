@@ -1,0 +1,48 @@
+pragma solidity ^0.8.7;
+
+contract _Pay {
+
+    struct Produto {
+        uint Id;
+        address payable Owner;
+        uint Price;
+        bool Purchased;
+        string ipfsHash;
+    }
+
+    mapping(uint=>Produto) public tabelaProduto; 
+
+    uint contador = 0;
+
+    event ProdutoCriado (uint Id, address payable Owner, 
+                            uint Price, bool Purchased, string ipfsHash);         
+        
+    event ProdutoComprado (uint Id, address payable Owner, address payable Buyer, 
+                            uint Price, bool Purchased, string ipfsHash);  
+        
+    function criarProduto (uint _Price, string memory _ipHash) public {
+        require(_Price > 0, "Maior que 0");
+        contador++;
+        tabelaProduto[contador] = Produto(contador, payable(msg.sender), _Price, false, _ipHash);
+        emit ProdutoCriado(contador, payable(msg.sender), _Price, false, _ipHash); 
+    }
+
+    function ComprarProduto(uint _Id) public payable {
+        Produto memory _produto = tabelaProduto[_Id];
+        address payable _seller = _produto.Owner;
+        require(_produto.Id>0 && _produto.Id<=contador, "Produto nao existe");
+        require(msg.value>=_produto.Price, "Nao ha Ether para enviar");
+        require(!_produto.Purchased, "Produto sera comprado");
+        require(_seller!=msg.sender, "Nao ha como comprar esse produto");
+        _produto.Owner = payable(msg.sender);
+        _produto.Purchased = true;
+        tabelaProduto[_Id] = _produto;
+        _seller.transfer(msg.value);
+        emit ProdutoComprado(contador, _seller, payable(msg.sender), _produto.Price, true, _produto.ipfsHash); 
+
+    }    
+        
+}
+
+    
+
